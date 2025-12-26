@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  /* Mendefinisikan warna kustom agar bisa dipakai sebagai text-primary, bg-primary, dll */
+  --color-primary: #ee2b7c;
+  --color-background-light: #f8f6f7;
+  --color-background-dark: #221018;
+  --color-text-light: #181114;
+  --color-text-dark: #f4f0f2;
+
+  /* Mendefinisikan font kustom */
+  --font-display: "Plus Jakarta Sans", sans-serif;
+
+
+}
+
+/* Base style untuk body agar menggunakan warna background dan font yang benar */
+@layer base {
+  body {
+    @apply bg-background-light text-text-light font-display;
+  }
+}
