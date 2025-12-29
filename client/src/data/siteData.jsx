@@ -102,16 +102,7 @@ export const services = [
     time: "-0 min", 
     desc: "Tampilan bold dan dramatis. Cocok untuk acara spesial atau kamu yang suka bulu mata tebal.", 
     image: lashImage3
-  },
-  { 
-    id: 10, 
-    category: 'Eyelash', 
-    name: "Lash Lift & Tint", 
-    price: 150000, 
-    time: "-", 
-    desc: "Melentikkan bulu mata asli tanpa sambungan. Hasil bertahan 4-6 minggu.", 
-    image: lashImage4
-  },
+  }
 ];
 
 // Data Staf / Professional

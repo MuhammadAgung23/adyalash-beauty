@@ -6,8 +6,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-5 md:px-10 grid grid-cols-1 md:grid-cols-3 gap-10 mb-10 text-left">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <img src={logo} alt="Adyalash Beauty Logo" className="w-12 h-auto object-contain" />
-            <h2 className="text-xl font-bold">Adyalash Beauty</h2>
+            <img src={logo} alt="Adyalash Beauty Logo" className="w-48 h-auto object-contain" />
+            {/* <h2 className="text-xl font-bold">Adyalash Beauty</h2> */}
           </div>
           <p className="text-sm text-neutral-500 leading-relaxed mb-6">
             Selamat datang di Adyalash Beauty, solusi kecantikan praktis bagi Anda wanita aktif di Kota Batam. Kami percaya bahwa setiap wanita berhak tampil percaya diri dan menawan tanpa harus mengorbankan waktu berharga mereka.

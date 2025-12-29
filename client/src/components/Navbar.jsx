@@ -9,8 +9,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-neutral-100">
       <div className="max-w-7xl mx-auto px-5 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Logo" className="w-12 h-auto object-contain" />
-          <h2 className="text-lg font-bold">Adyalash Beauty</h2>
+          <img src={logo} alt="Logo" className="w-48 h-auto object-contain" />
         </Link>
 
         {/* Tombol Hamburger (Hanya muncul di HP) */}
