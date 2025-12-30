@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // --- Sub-Komponen Sidebar ---
 const SidebarItem = ({ icon, label, active = false }) => (
-  <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-full transition-colors group ${active ? 'bg-primary/10 text-primary' : 'hover:bg-gray-50 text-[#181114]'}`}>
+  <div className={`flex items-center gap-3 px-4 py-3 rounded-full transition-colors cursor-pointer group ${active ? 'bg-primary/10 text-primary' : 'hover:bg-gray-50 text-[#181114]'}`}>
     <span className={`material-symbols-outlined text-[24px] ${active ? 'text-primary' : 'text-gray-500 group-hover:text-primary'}`}>{icon}</span>
     <p className={`text-sm leading-normal ${active ? 'font-bold' : 'font-medium'}`}>{label}</p>
-  </a>
+  </div>
 );
 
 // --- Sub-Komponen Stat Card ---
 const StatCard = ({ title, value, change, icon }) => (
-  <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-[#e6dbe0] shadow-sm hover:border-primary/50 transition-colors group">
-    <div className="flex justify-between items-center">
-      <p className="text-[#181114] text-base font-medium">{title}</p>
+  <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-[#e6dbe0] shadow-sm hover:border-primary/50 transition-colors group text-left">
+    <div className="flex justify-between items-center text-left">
+      <p className="text-[#181114] text-base font-medium">{title}</p> 
       <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-full">{icon}</span>
     </div>
     <div className="flex items-end gap-3 mt-2">
@@ -47,123 +47,301 @@ const PromoCard = ({ title, desc, status, footer, isDraft = false }) => (
 );
 
 export default function AdminDashboard() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [services, setServices] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false); // STATE LOADING BARU
+  const [editId, setEditId] = useState(null); 
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'Eyelash',
+    time: '60 mins',
+    image: null
+  });
   const navigate = useNavigate();
 
-  return (
-    <div className="flex h-screen w-full overflow-hidden bg-background-light font-display">
+  // Load Data
+  useEffect(() => {
+    fetch('http://localhost:5001/api/services')
+      .then(res => res.json())
+      .then(data => setServices(data))
+      .catch(err => console.error("Gagal load database:", err));
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const openAddModal = () => {
+    setEditId(null);
+    setFormData({ name: '', description: '', price: '', category: 'Eyelash', time: '60 mins', image: null });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (service) => {
+    setEditId(service._id);
+    setFormData({
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      category: service.category,
+      time: service.time,
+      image: service.image
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Mencegah reload halaman
+    console.log("Tombol ditekan! Mulai proses..."); // Cek di Console (F12)
+    setLoading(true); // Aktifkan status loading
+
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('category', formData.category);
+    data.append('time', formData.time);
+    
+    if (formData.image instanceof File) {
+      data.append('image', formData.image);
+    }
+
+    const url = editId 
+      ? `http://localhost:5001/api/services/${editId}` 
+      : 'http://localhost:5001/api/services';
+    const method = editId ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        body: data, 
+      });
       
-      {/* Sidebar Desktop */}
+      if (res.ok) {
+        const resultData = await res.json();
+        
+        if (editId) {
+          setServices(services.map(s => s._id === editId ? resultData : s));
+        } else {
+          setServices([...services, resultData]);
+        }
+
+        setIsModalOpen(false);
+        setEditId(null); // Reset Edit ID
+        alert(editId ? 'Sukses update data!' : 'Sukses tambah data!');
+      } else {
+        const errorData = await res.json();
+        alert("Gagal: " + errorData.message);
+      }
+    } catch (err) {
+      console.error("Error submit:", err);
+      alert('Gagal koneksi ke server');
+    } finally {
+      setLoading(false); // Matikan loading selesai atau gagal
+    }
+  };
+
+  const handleDeleteService = async (id) => {
+    if (window.confirm('Yakin hapus data ini?')) {
+      try {
+        const res = await fetch(`http://localhost:5001/api/services/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setServices(services.filter(s => s._id !== id));
+          alert('Terhapus!');
+        }
+      } catch (err) {
+        alert('Gagal hapus');
+      }
+    }
+  };
+
+  // ... import useNavigate dll
+
+// Fungsi Logout
+const handleLogout = () => {
+  // 1. Hapus kunci dari saku (LocalStorage)
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  
+  // 2. Tendang ke halaman Login
+  navigate('/admin/login');
+};
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden bg-background-light font-display relative">
+      
+      {/* Sidebar */}
       <aside className="w-72 bg-white border-r border-[#e6dbe0] flex flex-col hidden lg:flex shadow-sm z-20">
-        <div className="flex flex-col h-full justify-between p-6">
-          <div className="flex flex-col gap-8 text-left">
+        <div className="flex flex-col h-full justify-between p-6 text-left">
+          <div className="flex flex-col gap-8">
             <div className="flex gap-3 items-center">
               <div className="size-12 rounded-full border-2 border-primary/20 bg-cover bg-center" style={{ backgroundImage: "url('https://ui-avatars.com/api/?name=Admin&background=ee2b7c&color=fff')" }}></div>
-              <div className="flex flex-col">
+              <div>
                 <h1 className="text-[#181114] text-lg font-bold">Lidya Admin</h1>
                 <p className="text-[#896172] text-xs">Manage Website</p>
               </div>
             </div>
             <nav className="flex flex-col gap-2">
-              <SidebarItem icon="dashboard" label="Dashboard" active />
-              <SidebarItem icon="photo_library" label="Manage Photos" />
-              <SidebarItem icon="loyalty" label="Manage Promotions" />
-              <SidebarItem icon="edit_document" label="Edit Content" />
-              <SidebarItem icon="settings" label="Settings" />
+              <div onClick={() => setActiveTab('Dashboard')}><SidebarItem icon="dashboard" label="Dashboard" active={activeTab === 'Dashboard'} /></div>
+              <div onClick={() => setActiveTab('Services')}><SidebarItem icon="content_cut" label="Manage Services" active={activeTab === 'Services'} /></div>
+              <div onClick={() => setActiveTab('Photos')}><SidebarItem icon="photo_library" label="Manage Photos" active={activeTab === 'Photos'} /></div>
+              <div onClick={() => setActiveTab('Promotions')}><SidebarItem icon="loyalty" label="Manage Promotions" active={activeTab === 'Promotions'} /></div>
             </nav>
           </div>
-          <button onClick={() => window.open('/', '_blank')} className="flex w-full items-center justify-center rounded-full h-12 bg-primary text-white text-sm font-bold hover:bg-pink-600 transition-all shadow-lg shadow-primary/30">
+          <button onClick={() => window.open('/', '_blank')} className="flex w-full items-center justify-center rounded-full h-12 bg-primary text-white text-sm font-bold hover:bg-pink-600 transition-all shadow-lg">
             <span>View Live Site</span>
             <span className="material-symbols-outlined text-[18px] ml-2">open_in_new</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto relative scroll-smooth bg-background-light">
+      {/* Main Content Area */}
+      <main className="flex-1 h-full overflow-y-auto relative bg-background-light">
         <div className="max-w-[1200px] mx-auto p-4 md:p-8 flex flex-col gap-8 pb-20">
           
-          {/* Header */}
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-xl border border-[#e6dbe0] shadow-sm">
-            <div className="flex flex-col gap-2 text-left">
-              <h1 className="text-[#181114] text-3xl md:text-4xl font-black tracking-tight">Welcome back, Lidya</h1>
-              <p className="text-[#896172] text-base">Here is what's happening on your website today.</p>
+            <div className="text-left">
+              <h1 className="text-[#181114] text-3xl font-black tracking-tight">
+                {activeTab === 'Dashboard' ? 'Welcome back, Lidya' : `Manage ${activeTab}`}
+              </h1>
+              <p className="text-[#896172] text-base">Kontrol penuh website Adyalash Beauty.</p>
             </div>
-            <button onClick={() => navigate('/admin/login')} className="h-10 px-6 rounded-full bg-gray-100 text-[#181114] text-sm font-bold hover:bg-gray-200 transition-colors">
+            <button 
+              onClick={handleLogout} // <--- Ganti ini, jangan cuma navigate
+              className="h-10 px-6 rounded-full bg-gray-100 text-sm font-bold hover:bg-red-100 hover:text-red-600 transition-colors"
+            >
               Log Out
             </button>
           </header>
 
-          {/* Stats */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard title="Active Promotions" value="3" change="+1 new" icon="loyalty" />
-            <StatCard title="Gallery Photos" value="124" change="+12 this week" icon="photo_library" />
-            <StatCard title="Page Views" value="1.2k" change="+5% growth" icon="visibility" />
-          </section>
+          {/* TAB CONTENT (Dashboard, Services, etc) */}
+          {activeTab === 'Dashboard' && (
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatCard title="Active Services" value={services.length} change="Live in DB" icon="content_cut" />
+              <StatCard title="Gallery Photos" value="124" change="+12 week" icon="photo_library" />
+              <StatCard title="Page Views" value="1.2k" change="+5% growth" icon="visibility" />
+            </section>
+          )}
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left Col: Editor & Gallery */}
-            <div className="flex flex-col gap-8 flex-[2]">
-              
-              {/* Gallery Manager */}
-              <section className="bg-white rounded-xl border border-[#e6dbe0] shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b">
-                  <h2 className="text-xl font-bold">Gallery Manager</h2>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-full text-sm font-bold transition-colors">
-                    <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-                    <span>Upload</span>
-                  </button>
-                </div>
-                <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group">
-                    <span className="material-symbols-outlined text-gray-400 group-hover:text-primary">add_a_photo</span>
-                    <span className="text-[10px] font-bold text-gray-500 mt-2">Add New</span>
-                  </div>
-                  {/* Foto dummy */}
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100">
-                      <img src={`https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=200&sig=${i}`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button className="p-2 bg-white/20 rounded-full hover:bg-white text-white hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+          {activeTab === 'Services' && (
+            <section className="bg-white rounded-xl border border-[#e6dbe0] shadow-sm text-left">
+              <div className="p-6 border-b flex justify-between items-center">
+                <h2 className="text-xl font-bold">Daftar Layanan</h2>
+                <button onClick={openAddModal} className="bg-primary text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                  Add New Service
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {services.map(s => (
+                  <div key={s._id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary/30 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <img src={s.image || 'https://via.placeholder.com/50'} className="size-16 rounded-lg object-cover shadow-sm" alt="" />
+                      <div>
+                        <p className="font-bold text-[#181114]">{s.name}</p>
+                        <p className="text-xs text-[#896172] font-medium">{s.category} • Rp {s.price?.toLocaleString('id-ID')}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Quick Editor */}
-              <section className="bg-white rounded-xl border border-[#e6dbe0] shadow-sm p-6 flex flex-col gap-6 text-left">
-                <h2 className="text-xl font-bold">Quick Page Editor</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold mb-2">Hero Headline</label>
-                    <input className="w-full h-12 px-4 bg-gray-50 rounded-lg outline-none focus:ring-2 focus:ring-primary/20" defaultValue="Experience the Art of Beauty" />
+                    <div className="flex gap-2">
+                      <button onClick={() => openEditModal(s)} className="p-2 text-gray-400 hover:text-primary transition-colors bg-gray-50 hover:bg-primary/10 rounded-full">
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                      </button>
+                      <button onClick={() => handleDeleteService(s._id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 hover:bg-red-50 rounded-full">
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-2">Main Content</label>
-                    <textarea className="w-full p-4 bg-gray-50 rounded-lg h-32 outline-none focus:ring-2 focus:ring-primary/20 resize-none" defaultValue="Welcome to our luxury salon..."></textarea>
-                  </div>
-                </div>
-                <button className="bg-primary text-white h-12 rounded-full font-bold shadow-lg shadow-primary/20 hover:bg-pink-600 transition-all">Save Changes</button>
-              </section>
-            </div>
-
-            {/* Right Col: Promotions */}
-            <div className="flex-1 flex flex-col gap-6">
-              <button className="w-full flex items-center justify-center gap-2 rounded-full h-14 bg-primary text-white font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] transition-transform">
-                <span className="material-symbols-outlined">add_circle</span>
-                <span>Add New Promotion</span>
-              </button>
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-left px-1">Active Campaigns</h3>
-                <PromoCard title="Summer Gel Mani" desc="20% Off all gel services" status="Live" footer="Ends Aug 31" />
-                <PromoCard title="New Client Discount" desc="Rp.20.000 Off first visit" status="Live" footer="Always on" />
-                <PromoCard title="Holiday Bundle" desc="Free nail art with lash" status="Draft" footer="Starts Dec 1" isDraft />
+                ))}
               </div>
-            </div>
-          </div>
+            </section>
+          )}
+
+          {/* ... (Photos & Promotions Tabs sama seperti sebelumnya) ... */}
+          {activeTab === 'Photos' && <div className="text-center p-10 text-gray-400">Gallery Manager Coming Soon</div>}
+          {activeTab === 'Promotions' && <div className="text-center p-10 text-gray-400">Promotions Manager Coming Soon</div>}
+
         </div>
       </main>
+      
+      {/* --- MODAL FORM FIX (Ditaruh paling bawah agar Z-Index Menang) --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop Gelap */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+          
+          {/* Konten Modal */}
+          <div className="relative bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
+            <h2 className="text-2xl font-bold mb-6 text-left">{editId ? 'Edit Layanan' : 'Tambah Layanan Baru'}</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4 text-left">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400">Nama Layanan <span className="text-red-500">*</span></label>
+                <input name="name" onChange={handleChange} value={formData.name} required className="w-full h-12 px-4 bg-gray-50 rounded-xl outline-none border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Contoh: Classic Lash" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400">Harga (Rp) <span className="text-red-500">*</span></label>
+                  <input name="price" type="number" onChange={handleChange} value={formData.price} required className="w-full h-12 px-4 bg-gray-50 rounded-xl outline-none border focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="150000" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400">Kategori</label>
+                  <select name="category" onChange={handleChange} value={formData.category} className="w-full h-12 px-4 bg-gray-50 rounded-xl outline-none border focus:border-primary bg-white">
+                    <option value="Eyelash">Eyelash</option>
+                    <option value="Nails">Nails</option>
+                    <option value="Add-ons">Add-ons</option>
+                    <option value="Maintenance">Maintenance</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400">Deskripsi <span className="text-red-500">*</span></label>
+                <textarea name="description" onChange={handleChange} value={formData.description} required className="w-full p-4 bg-gray-50 rounded-xl h-24 outline-none border focus:border-primary resize-none" placeholder="Deskripsi singkat..." />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400">Foto Layanan</label>
+                {/* Preview Image */}
+                {typeof formData.image === 'string' && (
+                  <div className="mb-2 mt-1 relative w-20 h-20 group">
+                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover rounded-lg border" />
+                    <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center text-white text-[10px] rounded-lg">Current</div>
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
+                  className="w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-6 border-t border-gray-100">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 rounded-full font-bold bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600">Batal</button>
+                
+                {/* TOMBOL SIMPAN FIX */}
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className={`flex-1 h-12 rounded-full font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-pink-600 shadow-primary/30'}`}
+                >
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>{editId ? 'Simpan Perubahan' : 'Simpan Data'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

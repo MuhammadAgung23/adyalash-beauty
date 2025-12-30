@@ -1,101 +1,101 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function AdminLogin() {
-  const [email, setEmail] = useState('');
+export default function Login() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Logika MERN: Di sini nanti kamu akan fetch ke API Backend (Node/Express)
-    console.log("Login Admin:", { email, password });
-    
-    // Simulasi Berhasil (Nanti diarahkan ke Dashboard)
-    if(email === "admin@lidyalash.com" && password === "admin123") {
-        alert("Login Berhasil!");
-        // navigate('/admin/dashboard'); 
-    } else {
-        alert("Email atau Password salah!");
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('http://localhost:5001/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // 1. SIMPAN TOKEN (Ini Tiket Masuknya)
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        // 2. Redirect ke Dashboard
+        alert('Login Berhasil! Welcome Bos.');
+        navigate('/admin/dashboard'); 
+      } else {
+        // Kalau password salah
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Gagal koneksi ke server. Cek backend nyala gak?');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background-light flex items-center justify-center px-5 font-display">
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-primary/5 p-10 border border-gray-50">
-        
-        {/* Logo & Header */}
-        <div className="flex flex-col items-center gap-3 mb-10 text-center">
-          <div className="size-14 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined text-4xl">spa</span>
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 font-display p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
+        <div className="text-center mb-8">
+          <div className="size-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-3xl">lock</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-black text-text-main tracking-tight">Admin Portal</h1>
-            <p className="text-sm text-[#896172] font-medium">Lidyalash Beauty Management</p>
-          </div>
+          <h1 className="text-2xl font-black text-gray-800">Admin Login</h1>
+          <p className="text-gray-500 text-sm">Masuk untuk mengelola Adyalash Beauty</p>
         </div>
 
-        {/* Login Form */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded-xl font-bold text-center border border-red-200">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">Email Address</label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                placeholder="admin@lidyalash.com"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Username</label>
+            <input 
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+              placeholder="Masukkan username"
+              required
+            />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-text-main uppercase tracking-widest ml-1">Password</label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-12 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                placeholder="••••••••"
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
-              >
-                <span className="material-symbols-outlined text-xl">
-                  {showPassword ? 'visibility_off' : 'visibility'}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 cursor-pointer group">
-              <input type="checkbox" className="rounded text-primary focus:ring-primary/20" id="remember" />
-              <label htmlFor="remember" className="text-xs font-medium text-[#896172] cursor-pointer group-hover:text-primary">Remember me</label>
-            </div>
-            <a href="#" className="text-xs font-bold text-primary hover:underline">Forgot?</a>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Password</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+              placeholder="••••••••"
+              required
+            />
           </div>
 
           <button 
             type="submit" 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] mt-4"
+            disabled={loading}
+            className={`w-full h-12 rounded-xl font-bold text-white shadow-lg shadow-pink-500/30 transition-all ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-pink-500 hover:bg-pink-600 hover:scale-[1.02]'}`}
           >
-            Sign In to Dashboard
+            {loading ? 'Sedang Memproses...' : 'Masuk Dashboard'}
           </button>
         </form>
 
-        <p className="text-center text-[10px] text-gray-400 mt-10 uppercase tracking-[0.2em] font-medium">
-          Secure System &bull; Lidyalash Tech 2025
-        </p>
+        <div className="mt-8 text-center">
+            <p className="text-xs text-gray-400">Lupa password? Hubungi Developer (Agung).</p>
+        </div>
       </div>
     </div>
   );

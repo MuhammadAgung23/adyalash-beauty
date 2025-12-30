@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-// Import data terpusat
-import { services, maintenanceServices } from '../data/siteData';
 
 // Helper untuk format Rupiah
 const formatRupiah = (number) => {
@@ -14,16 +12,43 @@ const formatRupiah = (number) => {
 
 export default function Services() {
     const [activeFilter, setActiveFilter] = useState('All Services');
+    const [services, setServices] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Membagi layanan berdasarkan kategori dari siteData
+    // 1. AMBIL DATA DARI BACKEND
+    useEffect(() => {
+        fetch('http://localhost:5001/api/services')
+            .then(res => res.json())
+            .then(data => {
+                setServices(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Gagal ambil data:", err);
+                setLoading(false);
+            });
+    }, []);
+
+    // 2. FILTER DATA BERDASARKAN KATEGORI DATABASE
     const nailServices = services.filter(s => s.category === 'Nails');
     const lashServices = services.filter(s => s.category === 'Eyelash');
+    
+    // Asumsi: Jika nanti kamu nambah kategori "Maintenance" atau "Add-ons" di admin
+    const maintenanceServices = services.filter(s => s.category === 'Maintenance' || s.category === 'Add-ons');
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex justify-center items-center bg-background-light">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-background-light min-h-screen font-display">
             <main className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 flex flex-col gap-8">
                 
-                {/* Hero Section */}
+                {/* Hero Section (Tampilan Tetap Sama) */}
                 <div className="w-full rounded-xl overflow-hidden shadow-sm">
                     <div 
                         className="relative flex min-h-[400px] md:min-h-[480px] flex-col gap-6 bg-cover bg-center items-center justify-center p-6 md:p-10 text-center"
@@ -67,16 +92,20 @@ export default function Services() {
                                     <span className="material-symbols-outlined text-primary">brush</span>
                                     <h2 className="text-2xl font-bold">Nail Artistry</h2>
                                 </div>
-                                {nailServices.map(service => (
-                                    <ServiceItem 
-                                        key={service.id} 
-                                        title={service.name} 
-                                        price={formatRupiah(service.price)} 
-                                        duration={service.time} 
-                                        desc={service.desc} 
-                                        img={service.image} 
-                                    />
-                                ))}
+                                {nailServices.length > 0 ? (
+                                    nailServices.map(service => (
+                                        <ServiceItem 
+                                            key={service._id} 
+                                            title={service.name} 
+                                            price={formatRupiah(service.price)} 
+                                            duration={service.time} 
+                                            desc={service.description} 
+                                            img={service.image} 
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-gray-400 italic">Belum ada layanan Nail Art.</p>
+                                )}
                             </section>
                         )}
 
@@ -87,20 +116,24 @@ export default function Services() {
                                     <span className="material-symbols-outlined text-primary">visibility</span>
                                     <h2 className="text-2xl font-bold">Eyelash Extensions</h2>
                                 </div>
-                                {lashServices.map(service => (
-                                    <ServiceItem 
-                                        key={service.id} 
-                                        title={service.name} 
-                                        price={formatRupiah(service.price)} 
-                                        duration={service.time} 
-                                        desc={service.desc} 
-                                        img={service.image} 
-                                    />
-                                ))}
+                                {lashServices.length > 0 ? (
+                                    lashServices.map(service => (
+                                        <ServiceItem 
+                                            key={service._id} 
+                                            title={service.name} 
+                                            price={formatRupiah(service.price)} 
+                                            duration={service.time} 
+                                            desc={service.description} 
+                                            img={service.image} 
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-gray-400 italic">Belum ada layanan Eyelash.</p>
+                                )}
                             </section>
                         )}
 
-                        {/* Category: Add-ons */}
+                        {/* Category: Add-ons (Opsional) */}
                         {(activeFilter === 'All Services' || activeFilter === 'Add-ons') && (
                             <section className="flex flex-col gap-4 mt-10" id="addons">
                                 <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
@@ -111,20 +144,24 @@ export default function Services() {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {maintenanceServices.map((item) => (
-                                        <AddOnCard 
-                                            key={item.id} 
-                                            title={item.title} 
-                                            info={item.info} 
-                                            price={formatRupiah(item.price)} 
-                                        />
-                                    ))}
+                                    {maintenanceServices.length > 0 ? (
+                                        maintenanceServices.map((item) => (
+                                            <AddOnCard 
+                                                key={item._id} 
+                                                title={item.name} 
+                                                info={item.description} 
+                                                price={formatRupiah(item.price)} 
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-400 italic col-span-2">Belum ada Add-ons di database.</p>
+                                    )}
                                 </div>
                             </section>
                         )}
                     </div>
 
-                    {/* Sidebar Area */}
+                    {/* Sidebar Area (Tetap Sama) */}
                     <aside className="lg:col-span-4 flex flex-col gap-6">
                         <div className="sticky top-28 space-y-6 text-left">
                             <div className="bg-primary text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -149,12 +186,15 @@ export default function Services() {
     );
 }
 
-// Komponen Kecil untuk List Item
+// Komponen Kecil untuk List Item (Disesuaikan dikit untuk handle gambar kosong)
 function ServiceItem({ title, price, duration, desc, img }) {
     return (
         <div className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-4 rounded-2xl hover:border-primary/20 border border-transparent transition-all shadow-sm">
-            <div className="size-20 sm:size-24 rounded-xl bg-cover bg-center shrink-0" style={{ backgroundImage: `url(${img})` }}></div>
-            <div className="flex-1">
+            <div 
+                className="size-20 sm:size-24 rounded-xl bg-cover bg-center shrink-0 border border-gray-100" 
+                style={{ backgroundImage: `url(${img || 'https://via.placeholder.com/150'})` }} // Fallback image
+            ></div>
+            <div className="flex-1 text-left">
                 <div className="flex justify-between mb-1">
                     <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{title}</h3>
                     <span className="text-primary font-bold text-lg">{price}</span>
@@ -174,7 +214,7 @@ function AddOnCard({ title, info, price }) {
         <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-transparent hover:border-primary/20 hover:shadow-md transition-all group">
             <div className="text-left">
                 <h4 className="font-bold text-text-main group-hover:text-primary transition-colors">{title}</h4>
-                <p className="text-xs text-gray-500">{info}</p>
+                <p className="text-xs text-gray-500 line-clamp-1">{info}</p>
             </div>
             <div className="flex items-center gap-3">
                 <span className="font-bold text-primary">{price}</span>
